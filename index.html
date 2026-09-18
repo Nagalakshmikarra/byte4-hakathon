@@ -1,0 +1,1457 @@
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GIST Smart Campus Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%232563eb'/><stop offset='1' stop-color='%237c3aed'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='32' y='45' font-size='30' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>G</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  document.documentElement.classList.add('js');
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        colors: {
+          brand: {
+            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+            800: '#1e40af', 900: '#1e3a8a'
+          }
+        }
+      }
+    }
+  };
+</script>
+<style>
+  :root { --b1: #2563eb; --b2: #7c3aed; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #f5f7fc;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* ---------- nav ---------- */
+  .nav-link {
+    padding: .5rem .85rem; border-radius: .8rem; font-weight: 600; font-size: .875rem;
+    color: #475569; transition: all .2s ease; white-space: nowrap;
+  }
+  .nav-link:hover { background: #eff6ff; color: #1d4ed8; }
+  .nav-link.active {
+    background: linear-gradient(135deg, var(--b1), var(--b2));
+    color: #fff; box-shadow: 0 8px 20px -10px rgba(37, 99, 235, .95);
+  }
+  .mnav {
+    width: 100%; text-align: left; padding: .7rem .9rem; border-radius: .8rem;
+    font-weight: 600; color: #334155; transition: .2s;
+  }
+  .mnav:hover, .mnav.active { background: #eff6ff; color: #1d4ed8; }
+  /* ---------- cards ---------- */
+  .card {
+    background: #fff; border: 1px solid #e8eef7; border-radius: 1rem;
+    box-shadow: 0 10px 30px -22px rgba(15, 23, 42, .45);
+  }
+  .stat-card {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px -24px rgba(37, 99, 235, .75);
+    border-color: #bfdbfe;
+  }
+  /* ---------- panels ---------- */
+  #chatPanel { display: none; }
+  #chatPanel.open { display: flex; }
+  #modal { display: none; }
+  #modal.open { display: flex; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .chat-scroll::-webkit-scrollbar { width: 6px; }
+  .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+  /* ---------- chart ---------- */
+  .bar {
+    transition: height .9s cubic-bezier(.2, .8, .2, 1), filter .2s ease;
+    cursor: pointer; min-height: 8px;
+  }
+  .bar:hover { filter: brightness(1.1) saturate(1.25); }
+  .bar.active { outline: 3px solid #c7d2fe; outline-offset: 2px; }
+  /* ---------- typing dots ---------- */
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #94a3b8;
+    display: inline-block; animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: .15s; }
+  .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .45; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+  /* ---------- reveal ---------- */
+  .js .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+  .js .reveal.in { opacity: 1; transform: none; }
+  /* ---------- messages ---------- */
+  .msg-in { animation: msgIn .28s ease both; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .pulse-dot { animation: pulseDot 1.4s infinite; }
+  @keyframes pulseDot {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .6); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+  .grad-text { background: linear-gradient(135deg, #2563eb, #7c3aed); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .fab-shift { transition: transform .25s ease; }
+  .fab-shift:hover { transform: scale(1.07); }
+</style>
+</head>
+<body class="text-slate-800">
+
+<!-- ================= HEADER ================= -->
+<header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-[0_6px_24px_-18px_rgba(15,23,42,.6)]">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6">
+    <div class="flex items-center justify-between gap-2 h-[70px] md:h-[80px]">
+      <a href="#top" class="flex items-center gap-2.5 sm:gap-3 min-w-0 group">
+        <img id="logoImg" src="/gist_logo.png" alt="GIST Logo"
+             class="h-[50px] md:h-[54px] w-auto max-w-[64px] object-contain shrink-0 rounded-xl" />
+        <span class="font-extrabold text-slate-900 leading-[1.15] text-[12px] sm:text-[15px] lg:text-[18px] max-w-[52vw] sm:max-w-none">
+          Geethanjali Institute of Science and Technology
+          <span class="grad-text">(GIST)</span>, Nellore
+        </span>
+      </a>
+
+      <nav id="desktopNav" class="hidden lg:flex items-center gap-1">
+        <button class="nav-link" data-target="dashboard">Dashboard</button>
+        <button class="nav-link" data-target="chat-assistant">Chat Assistant</button>
+        <button class="nav-link" data-target="events">Events</button>
+        <button class="nav-link" data-target="placements">Placements</button>
+      </nav>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button data-open-chat
+          class="hidden xl:inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 shadow-lg shadow-blue-600/25 hover:opacity-95 active:scale-95 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>
+          Ask GIST Bot
+        </button>
+        <button id="hamburger" aria-label="Toggle menu"
+          class="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:scale-95 transition">
+          <svg id="icoMenu" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg id="icoClose" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- mobile menu -->
+  <div id="mobileMenu" class="lg:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out" style="max-height:0px">
+    <div class="px-3 pb-4 pt-2 space-y-1 border-t border-slate-200 bg-white">
+      <button class="mnav" data-target="dashboard">Dashboard</button>
+      <button class="mnav" data-target="chat-assistant">Chat Assistant</button>
+      <button class="mnav" data-target="events">Events</button>
+      <button class="mnav" data-target="placements">Placements</button>
+      <button data-open-chat
+        class="w-full mt-2 inline-flex items-center justify-center gap-2 text-sm font-bold text-white px-4 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 shadow-lg shadow-blue-600/25 active:scale-95 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>
+        Open Chat Assistant
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section id="top" class="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+  <img id="heroImg" src="/gist_campus.jpg" alt="GIST Nellore campus aerial view"
+       class="absolute inset-0 w-full h-full object-cover" />
+  <div class="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/65 to-blue-950/90"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-32 text-center text-white">
+    <span class="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-[.18em] text-blue-100 bg-white/10 border border-white/20 backdrop-blur px-4 py-1.5 rounded-full">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+      AI-Powered • Smart Digital Campus
+    </span>
+    <h1 class="mt-5 text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-tight drop-shadow-lg">
+      Welcome to GIST Smart Campus
+    </h1>
+    <p class="mt-4 max-w-2xl mx-auto text-blue-100/90 text-sm sm:text-base lg:text-lg">
+      Geethanjali Institute of Science and Technology, Nellore — attendance insights, smart alerts,
+      campus events, placements and an offline rule-based AI assistant. All in one dashboard.
+    </p>
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+      <button data-scroll="dashboard"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-bold px-6 py-3.5 rounded-xl bg-white text-blue-700 shadow-xl hover:bg-blue-50 active:scale-95 transition">
+        Explore Dashboard
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7-7-7M12 21V3"/></svg>
+      </button>
+      <button data-open-chat
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 font-bold px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-violet-600 text-white shadow-xl shadow-blue-900/40 hover:opacity-95 active:scale-95 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>
+        Open Chat Assistant
+      </button>
+    </div>
+
+    <div class="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-3xl mx-auto">
+      <div class="bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-3">
+        <p class="text-xl sm:text-2xl font-extrabold">2008</p>
+        <p class="text-[11px] text-blue-100/80 font-medium">Established</p>
+      </div>
+      <div class="bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-3">
+        <p class="text-xl sm:text-2xl font-extrabold">NAAC 'A'</p>
+        <p class="text-[11px] text-blue-100/80 font-medium">Grade & NBA</p>
+      </div>
+      <div class="bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-3">
+        <p class="text-xl sm:text-2xl font-extrabold">8</p>
+        <p class="text-[11px] text-blue-100/80 font-medium">B.Tech Specializations</p>
+      </div>
+      <div class="bg-white/10 border border-white/15 backdrop-blur rounded-xl px-3 py-3">
+        <p class="text-xl sm:text-2xl font-extrabold">2,656</p>
+        <p class="text-[11px] text-blue-100/80 font-medium">Total Students</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DASHBOARD ================= -->
+<section id="dashboard" class="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+  <div class="reveal mb-6">
+    <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+      Live Campus Overview
+    </span>
+    <h2 class="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">Smart Campus Dashboard</h2>
+    <p class="text-slate-500 text-sm md:text-base mt-1">Real-time indicators across attendance, facility bookings, events and enrolment. Tap any card for details.</p>
+  </div>
+
+  <!-- stat cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+    <button class="stat-card card reveal text-left p-4 sm:p-5" data-stat="attendance">
+      <div class="flex items-start justify-between">
+        <span class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 grid place-items-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2M12 21a9 9 0 100-18 9 9 0 000 18z"/></svg>
+        </span>
+        <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">▲ 3%</span>
+      </div>
+      <p class="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900">87%</p>
+      <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">Today's Attendance</p>
+    </button>
+
+    <button class="stat-card card reveal text-left p-4 sm:p-5" data-stat="bookings">
+      <div class="flex items-start justify-between">
+        <span class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 grid place-items-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </span>
+        <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Live</span>
+      </div>
+      <p class="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900">12</p>
+      <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">Active Bookings</p>
+    </button>
+
+    <button class="stat-card card reveal text-left p-4 sm:p-5" data-stat="events">
+      <div class="flex items-start justify-between">
+        <span class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 grid place-items-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.05 3.7l1.9 3.85 4.25.62-3.07 3 .72 4.24-3.8-2-3.8 2 .72-4.24-3.07-3 4.25-.62 1.9-3.85z"/></svg>
+        </span>
+        <span class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">This week</span>
+      </div>
+      <p class="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900">3</p>
+      <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">Upcoming Events</p>
+    </button>
+
+    <button class="stat-card card reveal text-left p-4 sm:p-5" data-stat="students">
+      <div class="flex items-start justify-between">
+        <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a3 3 0 11-3-3 3 3 0 013 3z"/></svg>
+        </span>
+        <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">2024-25</span>
+      </div>
+      <p class="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900">2656</p>
+      <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">Total Students</p>
+    </button>
+  </div>
+
+  <!-- alerts + chart -->
+  <div class="grid lg:grid-cols-5 gap-5 mt-6">
+    <!-- smart alerts -->
+    <div class="card reveal lg:col-span-2 p-5">
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white grid place-items-center">
+          <svg class="w-4.5 h-4.5" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 11-6 0"/></svg>
+        </span>
+        <h3 class="font-extrabold text-slate-900">Smart Alerts</h3>
+        <span class="ml-auto text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">AI predicted</span>
+      </div>
+
+      <ul class="mt-4 space-y-3">
+        <li class="rounded-xl border border-rose-100 bg-rose-50/60 p-3.5">
+          <p class="text-sm font-semibold text-slate-800 flex gap-2">
+            <span class="text-rose-500">🚨</span>
+            Room 204 predicted to overbook next Tuesday — suggest reallocating to Room 310
+          </p>
+          <button data-alert="reallocate"
+            class="mt-3 w-full sm:w-auto text-xs font-bold text-white px-3.5 py-2 rounded-lg bg-gradient-to-r from-rose-500 to-rose-600 active:scale-95 hover:opacity-95 transition">
+            Reallocate to Room 310
+          </button>
+        </li>
+
+        <li class="rounded-xl border border-amber-100 bg-amber-50/60 p-3.5">
+          <p class="text-sm font-semibold text-slate-800 flex gap-2">
+            <span class="text-amber-500">📉</span>
+            CSE 2nd Year attendance trending down 8% this month
+          </p>
+          <button data-alert="trend"
+            class="mt-3 w-full sm:w-auto text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-3.5 py-2 rounded-lg active:scale-95 transition">
+            View attendance trend
+          </button>
+        </li>
+
+        <li class="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5">
+          <p class="text-sm font-semibold text-slate-800 flex gap-2">
+            <span class="text-emerald-500">⚡</span>
+            A mini hackathon is happening right now on campus — 24-hour coding sprint in the CSE Lab Block
+          </p>
+          <button data-alert="hackathon"
+            class="mt-3 w-full sm:w-auto text-xs font-bold text-white px-3.5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 active:scale-95 hover:opacity-95 transition">
+            View live hackathon
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- attendance analytics -->
+    <div class="card reveal lg:col-span-3 p-5">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 grid place-items-center">
+          <svg style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m5 10V4m5 16v-7m5 7V8"/></svg>
+        </span>
+        <h3 class="font-extrabold text-slate-900">Attendance Analytics</h3>
+        <span class="ml-auto text-xs font-semibold text-slate-500">Mon – Fri • this week</span>
+      </div>
+
+      <div class="mt-6 flex items-end gap-2.5 sm:gap-4" style="height:200px" id="chartWrap">
+        <!-- bars injected by JS -->
+      </div>
+      <div class="grid grid-cols-5 gap-2.5 sm:gap-4 mt-3" id="chartLabels"></div>
+
+      <div id="chartDetail" class="mt-4 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm text-slate-600">
+        Tap a bar to see the day's attendance breakdown.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= EVENTS ================= -->
+<section id="events" class="scroll-mt-24 bg-white border-y border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+    <div class="reveal mb-6">
+      <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-violet-700 bg-violet-50 border border-violet-100 px-3 py-1 rounded-full">
+        Campus Life
+      </span>
+      <h2 class="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">Events &amp; Activities</h2>
+      <p class="text-slate-500 text-sm md:text-base mt-1">Technical symposiums, hackathons, skill development and cultural celebrations at GIST Nellore.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- live -->
+      <article class="card reveal p-5 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
+        <div class="flex items-center justify-between">
+          <span class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center text-xl">⚡</span>
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span> LIVE NOW
+          </span>
+        </div>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">Mini Hackathon (In Progress)</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">A 24-hour coding sprint is running right now in the CSE Lab Block — teams building rapid prototypes with mentor support and on-the-spot judging.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">24 hours</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">CSE Lab Block</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Open to all branches</span>
+        </div>
+        <button data-event="minihack"
+          class="mt-4 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 active:scale-95 hover:opacity-95 transition">
+          View live details
+        </button>
+      </article>
+
+      <article class="card reveal p-5">
+        <span class="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 grid place-items-center text-xl">🎓</span>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">GISTECH FEST &amp; SRUJANA</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">National-level technical symposiums featuring paper presentations, project expos, coding contests and robotics exhibitions.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">Paper Presentation</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">Project Expo</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">Robotics</span>
+        </div>
+        <button data-event="gistech"
+          class="mt-4 w-full text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 py-2.5 rounded-xl active:scale-95 transition">
+          View details
+        </button>
+      </article>
+
+      <article class="card reveal p-5">
+        <span class="w-11 h-11 rounded-xl bg-green-100 text-green-600 grid place-items-center text-xl">🌱</span>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">Ganesh Eco-Friendly Idol Making</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">A student environmental initiative where idols are crafted using sustainable, non-toxic and natural materials to spread eco-awareness.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700">Sustainability</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700">Non-toxic clay</span>
+        </div>
+        <button data-event="ganesh"
+          class="mt-4 w-full text-sm font-bold text-green-700 bg-green-50 hover:bg-green-100 py-2.5 rounded-xl active:scale-95 transition">
+          View details
+        </button>
+      </article>
+
+      <article class="card reveal p-5">
+        <span class="w-11 h-11 rounded-xl bg-violet-100 text-violet-600 grid place-items-center text-xl">💻</span>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">Hackathons</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">Active participation in the Smart India Hackathon along with CSE department developer workshops and build sprints.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">Smart India Hackathon</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">Dev Workshops</span>
+        </div>
+        <button data-event="hackathon"
+          class="mt-4 w-full text-sm font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 py-2.5 rounded-xl active:scale-95 transition">
+          View details
+        </button>
+      </article>
+
+      <article class="card reveal p-5">
+        <span class="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 grid place-items-center text-xl">📈</span>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">Skill Development</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">Industry-recognised certifications, Python and Linux workshops, plus Microsoft up-skilling modules for every branch.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">Python / Linux</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">Microsoft Modules</span>
+        </div>
+        <button data-event="skill"
+          class="mt-4 w-full text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 py-2.5 rounded-xl active:scale-95 transition">
+          View details
+        </button>
+      </article>
+
+      <article class="card reveal p-5">
+        <span class="w-11 h-11 rounded-xl bg-pink-100 text-pink-600 grid place-items-center text-xl">🎭</span>
+        <h3 class="mt-4 font-extrabold text-slate-900 text-lg">Cultural Activities</h3>
+        <p class="mt-2 text-sm text-slate-600 leading-relaxed">Annual Day, Orientation Day, Women's Day, National Science Day and Sankranti Sambaralu celebrations across the campus.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-pink-50 text-pink-700">Annual Day</span>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-pink-50 text-pink-700">Sankranti Sambaralu</span>
+        </div>
+        <button data-event="cultural"
+          class="mt-4 w-full text-sm font-bold text-pink-700 bg-pink-50 hover:bg-pink-100 py-2.5 rounded-xl active:scale-95 transition">
+          View details
+        </button>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLACEMENTS ================= -->
+<section id="placements" class="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+  <div class="reveal mb-6">
+    <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+      Training &amp; Placements
+    </span>
+    <h2 class="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">Placements at GIST</h2>
+    <p class="text-slate-500 text-sm md:text-base mt-1">Consistent placement records driven by the Training &amp; Placement Cell, industry certifications and pre-placement training.</p>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-5">
+    <!-- TPO card -->
+    <div class="reveal rounded-2xl p-6 text-white bg-gradient-to-br from-blue-600 to-violet-700 shadow-xl shadow-blue-600/25">
+      <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider bg-white/15 border border-white/20 px-3 py-1 rounded-full">
+        Training &amp; Placement Officer
+      </span>
+      <h3 class="mt-4 text-2xl font-extrabold">Mr. Y. Dinakar</h3>
+      <p class="text-blue-100 text-sm mt-1">GIST Nellore — TPO Cell</p>
+
+      <a href="tel:+919951587788"
+         class="mt-5 flex items-center gap-3 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl px-4 py-3 transition active:scale-[.98]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h2.6a1 1 0 01.95.68l1.1 3.3a1 1 0 01-.24 1.05L8 9.4a14 14 0 006.6 6.6l1.37-1.41a1 1 0 011.05-.24l3.3 1.1a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.6 21 3 14.4 3 6V5z"/></svg>
+        <span class="font-bold tracking-wide">+91 9951587788</span>
+      </a>
+
+      <div class="mt-3 grid grid-cols-2 gap-3">
+        <button data-copy="+91 9951587788"
+          class="text-sm font-bold bg-white text-blue-700 rounded-xl py-2.5 hover:bg-blue-50 active:scale-95 transition">
+          Copy number
+        </button>
+        <button data-open-chat-question="placement"
+          class="text-sm font-bold bg-white/15 border border-white/25 rounded-xl py-2.5 hover:bg-white/25 active:scale-95 transition">
+          Ask the bot
+        </button>
+      </div>
+    </div>
+
+    <!-- package cards -->
+    <div class="lg:col-span-2 grid sm:grid-cols-2 gap-5">
+      <div class="card reveal p-5">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Highest Package</p>
+        <p class="mt-2 text-3xl font-extrabold grad-text">₹14,00,000</p>
+        <p class="text-sm font-semibold text-slate-600">14 LPA</p>
+        <p class="text-xs text-slate-500 mt-3">Top offer secured by a GIST student in the current placement season.</p>
+      </div>
+
+      <div class="card reveal p-5">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">AIML Branch — Girl Students</p>
+        <p class="mt-2 text-3xl font-extrabold grad-text">₹6,00,000</p>
+        <p class="text-sm font-semibold text-slate-600">6 LPA offers</p>
+        <p class="text-xs text-slate-500 mt-3">AIML girl students received ₹6,00,000 (6 LPA) offers this season.</p>
+      </div>
+
+      <div class="card reveal p-5">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">CSE Student Offer</p>
+        <p class="mt-2 text-3xl font-extrabold grad-text">₹6,00,000</p>
+        <p class="text-sm font-semibold text-slate-600">6 LPA offer</p>
+        <p class="text-xs text-slate-500 mt-3">A CSE student also secured a ₹6,00,000 (6 LPA) package.</p>
+      </div>
+
+      <div class="card reveal p-5">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Strongest Records</p>
+        <div class="mt-3 flex gap-2">
+          <span class="text-sm font-extrabold text-white bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2 rounded-xl">CSE</span>
+          <span class="text-sm font-extrabold text-white bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 rounded-xl">EEE</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-3">CSE and EEE branches hold the strongest placement records at GIST.</p>
+        <button data-record
+          class="mt-3 w-full text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 py-2.5 rounded-xl active:scale-95 transition">
+          View branch-wise strength
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FACULTY ================= -->
+<section id="faculty" class="scroll-mt-24 bg-white border-y border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+    <div class="reveal mb-6">
+      <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+        Leadership &amp; Departments
+      </span>
+      <h2 class="mt-3 text-2xl md:text-3xl font-extrabold text-slate-900">Faculty at GIST</h2>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-5 reveal">
+      <div class="card p-5 border-blue-100 bg-gradient-to-br from-blue-50 to-white">
+        <span class="w-11 h-11 rounded-xl bg-blue-600 text-white grid place-items-center text-lg font-extrabold">P</span>
+        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-blue-700">Principal</p>
+        <h3 class="text-lg font-extrabold text-slate-900">Dr. D. Srinivas</h3>
+        <p class="text-xs text-slate-500 mt-1">Head of the institution at GIST Nellore.</p>
+      </div>
+      <div class="card p-5 border-violet-100 bg-gradient-to-br from-violet-50 to-white">
+        <span class="w-11 h-11 rounded-xl bg-violet-600 text-white grid place-items-center text-lg font-extrabold">VP</span>
+        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-violet-700">Vice Principal</p>
+        <h3 class="text-lg font-extrabold text-slate-900">Prof. K. Sravan Kumar</h3>
+        <p class="text-xs text-slate-500 mt-1">Academic administration.</p>
+      </div>
+      <div class="card p-5 border-emerald-100 bg-gradient-to-br from-emerald-50 to-white">
+        <span class="w-11 h-11 rounded-xl bg-emerald-600 text-white grid place-items-center text-lg font-extrabold">HOD</span>
+        <p class="mt-4 text-xs font-bold uppercase tracking-wider text-emerald-700">CSE — Head of Department</p>
+        <h3 class="text-lg font-extrabold text-slate-900">Dr. B. Lakshmana Rao</h3>
+        <p class="text-xs text-slate-500 mt-1">Computer Science &amp; Engineering.</p>
+      </div>
+    </div>
+
+    <div class="card reveal mt-5 p-5">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <h3 class="font-extrabold text-slate-900">Department Faculty</h3>
+        <div class="ml-auto flex gap-1.5 bg-slate-100 p-1 rounded-xl" id="facultyTabs">
+          <button class="faculty-tab text-xs font-bold px-3.5 py-2 rounded-lg transition" data-dept="cse">CSE</button>
+          <button class="faculty-tab text-xs font-bold px-3.5 py-2 rounded-lg transition" data-dept="ece">ECE</button>
+          <button class="faculty-tab text-xs font-bold px-3.5 py-2 rounded-lg transition" data-dept="eee">EEE</button>
+        </div>
+      </div>
+      <div id="facultyList" class="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHAT ASSISTANT LAUNCHER ================= -->
+<section id="chat-assistant" class="scroll-mt-24 max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+  <div class="reveal card overflow-hidden">
+    <div class="grid lg:grid-cols-2">
+      <div class="p-6 sm:p-8">
+        <span class="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+          Offline • Rule-based
+        </span>
+        <h2 class="mt-4 text-2xl md:text-3xl font-extrabold text-slate-900">GIST AI Chat Assistant</h2>
+        <p class="mt-3 text-slate-600 text-sm md:text-base leading-relaxed">
+          Ask anything about courses, admissions, placements, faculty, hostel, library, events or the campus itself.
+          The assistant runs 100% locally with keyword logic — <strong>no external API calls, no network requests</strong>.
+        </p>
+
+        <div class="mt-5 flex flex-wrap gap-2">
+          <button data-open-chat-question="courses" class="chip text-xs font-bold px-3.5 py-2 rounded-full bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 active:scale-95 transition">What courses are offered?</button>
+          <button data-open-chat-question="placement" class="chip text-xs font-bold px-3.5 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 active:scale-95 transition">Highest placement package?</button>
+          <button data-open-chat-question="principal" class="chip text-xs font-bold px-3.5 py-2 rounded-full bg-violet-50 text-violet-700 border border-violet-100 hover:bg-violet-100 active:scale-95 transition">Who is the Principal?</button>
+          <button data-open-chat-question="collegename" class="chip text-xs font-bold px-3.5 py-2 rounded-full bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100 active:scale-95 transition">College full name &amp; photo</button>
+          <button data-open-chat-question="hostel" class="chip text-xs font-bold px-3.5 py-2 rounded-full bg-pink-50 text-pink-700 border border-pink-100 hover:bg-pink-100 active:scale-95 transition">Hostel facilities?</button>
+        </div>
+
+        <button data-open-chat
+          class="mt-6 inline-flex items-center gap-2 font-bold text-white px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 shadow-lg shadow-blue-600/25 hover:opacity-95 active:scale-95 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>
+          Launch Chat Assistant
+        </button>
+      </div>
+
+      <div class="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6 sm:p-8 text-white min-h-[260px]">
+        <div class="absolute inset-0 opacity-20">
+          <img id="chatSideImg" src="/gist_campus.jpg" alt="GIST campus" class="w-full h-full object-cover" />
+        </div>
+        <div class="relative space-y-3">
+          <div class="flex gap-2 items-start">
+            <span class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 grid place-items-center text-xs font-extrabold shrink-0">G</span>
+            <div class="bg-white/10 border border-white/15 backdrop-blur rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]">
+              Hi! 👋 I'm the GIST Campus Assistant. Ask me about courses, placements, faculty, hostel, library or events.
+            </div>
+          </div>
+          <div class="flex gap-2 items-start justify-end">
+            <div class="bg-gradient-to-r from-blue-600 to-violet-600 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm max-w-[85%]">
+              What's the highest placement package?
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <span class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 grid place-items-center text-xs font-extrabold shrink-0">G</span>
+            <div class="bg-white/10 border border-white/15 backdrop-blur rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm max-w-[85%]">
+              The highest package this year is ₹14,00,000 (14 LPA). AIML girl students received ₹6,00,000 offers…
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="bg-slate-900 text-slate-300">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="sm:col-span-2 lg:col-span-2">
+      <div class="flex items-center gap-3">
+        <img id="footerLogo" src="/gist_logo.png" alt="GIST Logo" class="h-12 w-auto max-w-[56px] object-contain rounded-xl bg-white/5 p-1" />
+        <p class="font-extrabold text-white text-sm sm:text-base">Geethanjali Institute of Science and Technology (GIST), Nellore</p>
+      </div>
+      <p class="mt-4 text-sm leading-relaxed text-slate-400">
+        3rd Mile, Nellore-Bombay Highway, Gangavaram (V), Kovur (M), S.P.S.R District, Andhra Pradesh – 524137.
+        Established 2008 • AICTE approved • NAAC 'A' grade • NBA accredited • ISO 9001:2008 • Autonomous.
+      </p>
+    </div>
+    <div>
+      <p class="font-bold text-white text-sm uppercase tracking-wider">Quick Links</p>
+      <ul class="mt-4 space-y-2 text-sm">
+        <li><button data-scroll="dashboard" class="hover:text-white transition">Dashboard</button></li>
+        <li><button data-scroll="events" class="hover:text-white transition">Events &amp; Activities</button></li>
+        <li><button data-scroll="placements" class="hover:text-white transition">Placements</button></li>
+        <li><button data-scroll="chat-assistant" class="hover:text-white transition">Chat Assistant</button></li>
+      </ul>
+    </div>
+    <div>
+      <p class="font-bold text-white text-sm uppercase tracking-wider">Contact</p>
+      <ul class="mt-4 space-y-2 text-sm">
+        <li><a href="tel:+919951587788" class="hover:text-white transition">TPO: Mr. Y. Dinakar — +91 9951587788</a></li>
+        <li><button data-open-chat class="hover:text-white transition">Ask the Campus Assistant</button></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10 py-5 text-center text-xs text-slate-500">
+    © <span id="year"></span> GIST Nellore — AI-Powered Smart Digital Campus. Assistant runs fully offline with rule-based logic.
+  </div>
+</footer>
+
+<!-- ================= CHAT PANEL ================= -->
+<div id="chatPanel" class="fixed z-[70] right-3 sm:right-6 bottom-[86px] w-[calc(100vw-1.5rem)] sm:w-[400px] max-w-[420px] h-[70vh] max-h-[540px] flex-col bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-900/25 overflow-hidden">
+  <div class="bg-gradient-to-r from-blue-600 to-violet-600 text-white px-4 py-3 flex items-center gap-3 shrink-0">
+    <span class="w-9 h-9 rounded-full bg-white/20 border border-white/25 grid place-items-center font-extrabold text-sm">G</span>
+    <div class="min-w-0">
+      <p class="font-bold text-sm leading-tight">GIST Campus Assistant</p>
+      <p class="text-[11px] text-blue-100 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online • rule-based, no API
+      </p>
+    </div>
+    <div class="ml-auto flex items-center gap-1">
+      <button id="clearChat" title="Clear chat" class="w-8 h-8 rounded-lg hover:bg-white/20 grid place-items-center active:scale-90 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7m5 4v6m4-6v6M9 7V4h6v3M4 7h16"/></svg>
+      </button>
+      <button id="closeChat" title="Close chat" class="w-8 h-8 rounded-lg hover:bg-white/20 grid place-items-center active:scale-90 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="chatMessages" class="chat-scroll flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50"></div>
+
+  <div class="px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar bg-white border-t border-slate-100 shrink-0">
+    <button class="chip-mini" data-q="What courses are offered?">Courses</button>
+    <button class="chip-mini" data-q="Highest placement package?">Placements</button>
+    <button class="chip-mini" data-q="Who is the principal?">Principal</button>
+    <button class="chip-mini" data-q="Tell me about the library">Library</button>
+    <button class="chip-mini" data-q="Hostel facilities?">Hostel</button>
+    <button class="chip-mini" data-q="Show me the campus photo">Campus photo</button>
+    <button class="chip-mini" data-q="Geethanjali Institute of Science and Technology">College name</button>
+  </div>
+
+  <form id="chatForm" class="p-3 pt-2 flex items-center gap-2 border-t border-slate-100 bg-white shrink-0">
+    <input id="chatInput" type="text" autocomplete="off" placeholder="Ask about courses, placements, hostel…"
+      class="flex-1 min-w-0 text-sm px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition" />
+    <button type="submit" aria-label="Send"
+      class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white grid place-items-center shadow-lg shadow-blue-600/25 active:scale-95 hover:opacity-95 transition">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </form>
+</div>
+
+<!-- ================= FLOATING BUTTON ================= -->
+<button id="chatFab" aria-label="Toggle chat assistant"
+  class="fab-shift fixed z-[75] right-4 sm:right-6 bottom-5 h-14 w-14 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 text-white grid place-items-center shadow-2xl shadow-blue-800/40 active:scale-95">
+  <svg id="fabIconChat" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12a8 8 0 01-11.6 7.1L4 21l1.9-5.4A8 8 0 1121 12z"/></svg>
+  <svg id="fabIconClose" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+</button>
+
+<!-- ================= MODAL ================= -->
+<div id="modal" class="fixed inset-0 z-[85] items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" data-close-modal></div>
+  <div class="relative bg-white w-full max-w-lg max-h-[86vh] overflow-y-auto rounded-2xl shadow-2xl">
+    <div class="sticky top-0 flex items-start gap-3 px-5 py-4 border-b border-slate-100 bg-white/95 backdrop-blur rounded-t-2xl">
+      <h3 id="modalTitle" class="font-extrabold text-slate-900 text-lg pr-8">Details</h3>
+      <button data-close-modal class="ml-auto w-9 h-9 shrink-0 rounded-lg hover:bg-slate-100 grid place-items-center active:scale-90 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="modalBody" class="px-5 py-5 text-sm text-slate-600 leading-relaxed"></div>
+  </div>
+</div>
+
+<!-- ================= TOASTS ================= -->
+<div id="toastWrap" class="fixed z-[95] top-20 right-3 sm:right-6 space-y-2 w-[calc(100vw-1.5rem)] sm:w-[340px] pointer-events-none"></div>
+
+<style>
+  .chip-mini {
+    white-space: nowrap; font-size: 11px; font-weight: 700; padding: .4rem .75rem;
+    border-radius: 99px; background: #f1f5f9; color: #475569; transition: .2s; border: 1px solid #e2e8f0;
+  }
+  .chip-mini:hover { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+  .faculty-tab { color: #475569; }
+  .faculty-tab.active { background: #fff; color: #1d4ed8; box-shadow: 0 4px 12px -6px rgba(15, 23, 42, .4); }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =====================================================
+     IMAGE FALLBACKS
+  ===================================================== */
+  var CAMPUS_SRC = [
+    '/gist_campus.jpg',
+    'https://www.designarena.ai/u/fa04b872-118a-4f93-bb08-b13e57135fe7',
+    'https://www.designarena.ai/u/aff8cb9c-f823-418e-a6ce-e7f74a259a26'
+  ];
+  var LOGO_SRC = [
+    '/gist_logo.png',
+    'https://www.designarena.ai/u/aff8cb9c-f823-418e-a6ce-e7f74a259a26',
+    'https://www.designarena.ai/u/fa04b872-118a-4f93-bb08-b13e57135fe7'
+  ];
+
+  function wireImageFallback(img, sources, onFail) {
+    if (!img) return;
+    var i = 0;
+    function next() {
+      i++;
+      if (i < sources.length) {
+        img.src = sources[i];
+      } else {
+        img.removeEventListener('error', next);
+        if (onFail) onFail(img);
+      }
+    }
+    img.addEventListener('error', next);
+    img.src = sources[0];
+    if (img.complete && img.naturalWidth === 0) next();
+  }
+
+  function logoFail(img) {
+    var d = document.createElement('div');
+    d.className = 'h-[50px] w-[50px] md:h-[54px] md:w-[54px] rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white font-extrabold flex items-center justify-center text-[10px] tracking-wide shrink-0 shadow-md';
+    d.textContent = 'GIST';
+    if (img.parentNode) img.parentNode.replaceChild(d, img);
+  }
+
+  wireImageFallback(document.getElementById('logoImg'), LOGO_SRC, logoFail);
+  wireImageFallback(document.getElementById('heroImg'), CAMPUS_SRC, function (img) { img.style.display = 'none'; });
+  wireImageFallback(document.getElementById('chatSideImg'), CAMPUS_SRC, function (img) { img.style.display = 'none'; });
+  wireImageFallback(document.getElementById('footerLogo'), LOGO_SRC, function (img) { img.style.display = 'none'; });
+
+  /* =====================================================
+     TOASTS
+  ===================================================== */
+  var toastWrap = document.getElementById('toastWrap');
+  function toast(message, type) {
+    var colors = {
+      success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      info: 'border-blue-200 bg-blue-50 text-blue-800',
+      warn: 'border-amber-200 bg-amber-50 text-amber-800'
+    };
+    var el = document.createElement('div');
+    el.className = 'pointer-events-auto rounded-xl border px-4 py-3 shadow-lg text-sm font-semibold flex items-start gap-2 msg-in ' + (colors[type] || colors.info);
+    el.innerHTML = '<span class="shrink-0">' + (type === 'success' ? '✅' : type === 'warn' ? '⚠️' : 'ℹ️') + '</span><span>' + message + '</span>';
+    toastWrap.appendChild(el);
+    setTimeout(function () {
+      el.style.transition = 'opacity .3s, transform .3s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(16px)';
+      setTimeout(function () { el.remove(); }, 320);
+    }, 3200);
+  }
+
+  /* =====================================================
+     MODAL
+  ===================================================== */
+  var modal = document.getElementById('modal');
+  var modalTitle = document.getElementById('modalTitle');
+  var modalBody = document.getElementById('modalBody');
+
+  function openModal(title, html) {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  modal.addEventListener('click', function (e) {
+    if (e.target.closest('[data-close-modal]')) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeModal(); }
+  });
+
+  /* =====================================================
+     NAVIGATION / SCROLL
+  ===================================================== */
+  var HEADER_OFFSET = 92;
+  function scrollToId(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var y = el.getBoundingClientRect().top + window.pageYOffset - HEADER_OFFSET;
+    window.scrollTo({ top: y < 0 ? 0 : y, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('[data-target]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      scrollToId(btn.dataset.target);
+      closeMobileMenu();
+    });
+  });
+  document.querySelectorAll('[data-scroll]').forEach(function (btn) {
+    btn.addEventListener('click', function () { scrollToId(btn.dataset.scroll); });
+  });
+
+  /* ---------- mobile menu ---------- */
+  var mobileMenu = document.getElementById('mobileMenu');
+  var icoMenu = document.getElementById('icoMenu');
+  var icoClose = document.getElementById('icoClose');
+  var hamburger = document.getElementById('hamburger');
+  var menuOpen = false;
+
+  function openMobileMenu() {
+    menuOpen = true;
+    mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px';
+    icoMenu.classList.add('hidden');
+    icoClose.classList.remove('hidden');
+  }
+  function closeMobileMenu() {
+    menuOpen = false;
+    mobileMenu.style.maxHeight = '0px';
+    icoMenu.classList.remove('hidden');
+    icoClose.classList.add('hidden');
+  }
+  hamburger.addEventListener('click', function () {
+    if (menuOpen) closeMobileMenu(); else openMobileMenu();
+  });
+  window.addEventListener('resize', function () {
+    if (window.innerWidth >= 1024 && menuOpen) closeMobileMenu();
+    else if (menuOpen) mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px';
+  });
+
+  /* ---------- scroll spy ---------- */
+  var SPY_IDS = ['dashboard', 'chat-assistant', 'events', 'placements'];
+  function updateActiveNav() {
+    var y = window.pageYOffset + HEADER_OFFSET + 40;
+    var current = SPY_IDS[0];
+    SPY_IDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.offsetTop <= y) current = id;
+    });
+    if (window.innerHeight + window.pageYOffset >= document.body.scrollHeight - 4) {
+      current = SPY_IDS[SPY_IDS.length - 1];
+    }
+    document.querySelectorAll('.nav-link, .mnav').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.target === current);
+    });
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (!ticking) {
+      window.requestAnimationFrame(function () { updateActiveNav(); ticking = false; });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  /* =====================================================
+     REVEAL ON SCROLL
+  ===================================================== */
+  var revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    revealEls.forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(i * 30, 180) + 'ms';
+      io.observe(el);
+    });
+  } else {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  /* =====================================================
+     ATTENDANCE CHART
+  ===================================================== */
+  var CHART = [
+    { day: 'Mon', value: 91, present: 2417 },
+    { day: 'Tue', value: 88, present: 2337 },
+    { day: 'Wed', value: 84, present: 2231 },
+    { day: 'Thu', value: 86, present: 2284 },
+    { day: 'Fri', value: 87, present: 2311 }
+  ];
+  var chartWrap = document.getElementById('chartWrap');
+  var chartLabels = document.getElementById('chartLabels');
+  var chartDetail = document.getElementById('chartDetail');
+
+  CHART.forEach(function (d, idx) {
+    var col = document.createElement('div');
+    col.className = 'flex-1 flex flex-col items-center justify-end h-full gap-1.5';
+
+    var val = document.createElement('span');
+    val.className = 'text-[11px] sm:text-xs font-extrabold text-slate-500';
+    val.textContent = d.value + '%';
+
+    var bar = document.createElement('div');
+    bar.className = 'bar w-full rounded-t-xl bg-gradient-to-t from-blue-600 to-violet-500 shadow-lg shadow-blue-600/20';
+    bar.style.height = '0%';
+    bar.setAttribute('role', 'button');
+    bar.setAttribute('tabindex', '0');
+    bar.setAttribute('aria-label', d.day + ' attendance ' + d.value + '%');
+    bar.dataset.idx = idx;
+
+    function show() {
+      document.querySelectorAll('.bar').forEach(function (b) { b.classList.remove('active'); });
+      bar.classList.add('active');
+      chartDetail.innerHTML = '<strong class="text-slate-900">' + d.day + ':</strong> ' + d.value +
+        '% attendance — ' + d.present.toLocaleString('en-IN') + ' of 2,656 students present. ' +
+        (d.value >= 88 ? '<span class="text-emerald-600 font-semibold">Above campus average.</span>'
+          : '<span class="text-amber-600 font-semibold">Below the weekly average — monitor closely.</span>');
+    }
+    bar.addEventListener('click', show);
+    bar.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+
+    col.appendChild(val);
+    col.appendChild(bar);
+    chartWrap.appendChild(col);
+
+    var lab = document.createElement('div');
+    lab.className = 'text-center text-xs font-bold text-slate-500';
+    lab.textContent = d.day;
+    chartLabels.appendChild(lab);
+
+    setTimeout(function () { bar.style.height = d.value + '%'; }, 220 + idx * 110);
+  });
+
+  /* =====================================================
+     STAT CARD DETAILS
+  ===================================================== */
+  var STAT_DETAILS = {
+    attendance: {
+      title: "Today's Attendance — 87%",
+      html: '<p>2,311 of 2,656 students are marked present today, giving a campus-wide attendance of <strong>87%</strong>.</p>' +
+        '<div class="mt-4 space-y-2">' +
+        '<div class="flex justify-between text-sm"><span>CSE</span><strong class="text-slate-800">89%</strong></div>' +
+        '<div class="flex justify-between text-sm"><span>ECE</span><strong class="text-slate-800">86%</strong></div>' +
+        '<div class="flex justify-between text-sm"><span>EEE</span><strong class="text-slate-800">88%</strong></div>' +
+        '<div class="flex justify-between text-sm"><span>AIML</span><strong class="text-slate-800">85%</strong></div>' +
+        '</div>' +
+        '<button onclick="window.__gistAsk(\'What is the attendance trend?\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 active:scale-95 transition">Ask the Campus Assistant</button>'
+    },
+    bookings: {
+      title: 'Active Bookings — 12',
+      html: '<p>12 facility bookings are currently active across seminar halls, computer labs and sports grounds.</p>' +
+        '<ul class="mt-4 space-y-2 text-sm">' +
+        '<li class="flex justify-between"><span>Seminar Hall A — GISTECH rehearsal</span><strong class="text-slate-800">3 slots</strong></li>' +
+        '<li class="flex justify-between"><span>CSE Lab Block — Mini Hackathon (live)</span><strong class="text-slate-800">4 slots</strong></li>' +
+        '<li class="flex justify-between"><span>Auditorium — Skill workshop</span><strong class="text-slate-800">2 slots</strong></li>' +
+        '<li class="flex justify-between"><span>Sports Ground — Cricket practice</span><strong class="text-slate-800">3 slots</strong></li>' +
+        '</ul>' +
+        '<button onclick="window.__gistToast(\'Booking request form opened for the Facility Desk.\',\'info\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 active:scale-95 transition">New booking request</button>'
+    },
+    events: {
+      title: 'Upcoming Events — 3',
+      html: '<ul class="space-y-3 text-sm">' +
+        '<li><strong class="text-slate-800">Mini Hackathon</strong><br>Happening right now — 24-hour coding sprint, CSE Lab Block.</li>' +
+        '<li><strong class="text-slate-800">Skill Development Workshop</strong><br>Python &amp; Linux industry certification session.</li>' +
+        '<li><strong class="text-slate-800">National Science Day</strong><br>Campus-wide science exhibition and student showcases.</li>' +
+        '</ul>' +
+        '<button onclick="window.__gistScroll(\'events\')" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 active:scale-95 transition">Go to Events section</button>'
+    },
+    students: {
+      title: 'Total Students — 2656',
+      html: '<p>GIST Nellore currently enrols <strong>2,656</strong> students across B.Tech, Diploma and M.Tech programmes.</p>' +
+        '<div class="mt-4 grid grid-cols-2 gap-3">' +
+        '<div class="rounded-xl bg-blue-50 p-3"><p class="text-lg font-extrabold text-blue-700">8</p><p class="text-xs">B.Tech specializations</p></div>' +
+        '<div class="rounded-xl bg-violet-50 p-3"><p class="text-lg font-extrabold text-violet-700">5</p><p class="text-xs">Diploma disciplines</p></div>' +
+        '<div class="rounded-xl bg-emerald-50 p-3"><p class="text-lg font-extrabold text-emerald-700">M.Tech</p><p class="text-xs">2-year CSE programme</p></div>' +
+        '<div class="rounded-xl bg-amber-50 p-3"><p class="text-lg font-extrabold text-amber-700">2008</p><p class="text-xs">Year established</p></div>' +
+        '</div>'
+    }
+  };
+
+  document.querySelectorAll('[data-stat]').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var d = STAT_DETAILS[card.dataset.stat];
+      if (d) openModal(d.title, d.html);
+    });
+  });
+
+  /* =====================================================
+     SMART ALERT ACTIONS
+  ===================================================== */
+  document.querySelectorAll('[data-alert]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var kind = btn.dataset.alert;
+      if (kind === 'reallocate') {
+        openModal('Room Reallocation Proposal', 
+          '<p>Room 204 is predicted to exceed capacity next Tuesday. The AI scheduler suggests moving the session to <strong>Room 310</strong>, which seats 20 more students and is free in the same slot.</p>' +
+          '<div class="mt-4 rounded-xl bg-blue-50 border border-blue-100 p-4 text-sm">' +
+          '<p><strong class="text-slate-800">From:</strong> Room 204 (capacity 60)</p>' +
+          '<p class="mt-1"><strong class="text-slate-800">To:</strong> Room 310 (capacity 80)</p>' +
+          '<p class="mt-1"><strong class="text-slate-800">Slot:</strong> Tuesday, 10:00 – 11:00 AM</p></div>' +
+          '<button onclick="window.__gistToast(\'Reallocation confirmed — Room 310 reserved for Tuesday.\',\'success\');window.__gistCloseModal();" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 active:scale-95 transition">Confirm reallocation</button>'
+        );
+      } else if (kind === 'trend') {
+        openModal('CSE 2nd Year Attendance Trend',
+          '<p>CSE 2nd Year attendance has dropped by <strong>8%</strong> this month. Weekly movement:</p>' +
+          '<div class="mt-4 space-y-3">' +
+          ['Week 1 — 92%', 'Week 2 — 89%', 'Week 3 — 85%', 'Week 4 — 84%'].map(function (t, i) {
+            var v = [92, 89, 85, 84][i];
+            return '<div><div class="flex justify-between text-xs font-semibold mb-1"><span>' + t.split(' — ')[0] + '</span><span>' + v + '%</span></div>' +
+              '<div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-amber-400 to-rose-500" style="width:' + v + '%"></div></div></div>';
+          }).join('') +
+          '</div>' +
+          '<p class="mt-4 text-xs text-slate-500">Suggested action: mentor follow-up with class representatives and parent notification for defaulters below 75%.</p>' +
+          '<button onclick="window.__gistToast(\'Follow-up notification sent to CSE 2nd Year mentors.\',\'success\');" class="mt-5 w-full text-sm font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 py-2.5 rounded-xl active:scale-95 transition">Notify mentors</button>'
+        );
+      } else if (kind === 'hackathon') {
+        openModal('Mini Hackathon — Live Now',
+          '<p>A <strong>mini hackathon is currently happening</strong> on campus: a 24-hour coding sprint running in the CSE Lab Block.</p>' +
+          '<ul class="mt-4 space-y-2 text-sm list-disc pl-5">' +
+          '<li>Teams of 2–4 students from all branches</li>' +
+          '<li>Mentors available through the night</li>' +
+          '<li>Judging on innovation, working prototype and presentation</li>' +
+          '<li>Certificates for all participants, prizes for top 3 teams</li>' +
+          '</ul>' +
+          '<button onclick="window.__gistToast(\'You are registered for the live mini hackathon — see you at the CSE Lab Block!\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 active:scale-95 transition">Join the hackathon</button>'
+        );
+      }
+    });
+  });
+
+  /* =====================================================
+     EVENTS
+  ===================================================== */
+  var EVENT_DETAILS = {
+    minihack: {
+      title: 'Mini Hackathon — Live Now',
+      html: '<p>A 24-hour mini hackathon is in progress right now in the CSE Lab Block. Teams are building rapid prototypes with mentor support and live judging.</p>' +
+        '<ul class="mt-4 space-y-2 text-sm list-disc pl-5"><li>Open to all branches</li><li>Certificates for all participants</li><li>Prizes for the top 3 teams</li></ul>' +
+        '<button onclick="window.__gistToast(\'Registered for the live mini hackathon!\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 active:scale-95 transition">Register now</button>'
+    },
+    gistech: {
+      title: 'GISTECH FEST & SRUJANA',
+      html: '<p>GISTECH FEST &amp; SRUJANA are GIST Nellore\'s annual <strong>national-level technical symposiums</strong>.</p>' +
+        '<ul class="mt-4 space-y-2 text-sm list-disc pl-5"><li>Paper presentations</li><li>Project expos</li><li>Coding contests</li><li>Robotics exhibitions</li></ul>' +
+        '<button onclick="window.__gistToast(\'Registration interest recorded for GISTECH FEST & SRUJANA.\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 active:scale-95 transition">Register interest</button>'
+    },
+    ganesh: {
+      title: 'Ganesh Eco-Friendly Idol Making',
+      html: '<p>A student-led environmental initiative where Ganesh idols are made using <strong>sustainable, non-toxic materials</strong> to spread environmental awareness across the campus.</p>' +
+        '<p class="mt-3">Students learn clay modelling, natural colouring and eco-disposal practices.</p>' +
+        '<button onclick="window.__gistToast(\'You joined the Eco-Friendly Idol Making volunteer list.\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 active:scale-95 transition">Volunteer for next edition</button>'
+    },
+    hackathon: {
+      title: 'Hackathons at GIST',
+      html: '<p>GIST students actively participate in the <strong>Smart India Hackathon</strong>, along with CSE department developer workshops and internal build sprints.</p>' +
+        '<ul class="mt-4 space-y-2 text-sm list-disc pl-5"><li>Smart India Hackathon participation</li><li>CSE developer workshops</li><li>Mini hackathons through the academic year</li></ul>' +
+        '<button onclick="window.__gistToast(\'Signed up for hackathon updates.\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 active:scale-95 transition">Get hackathon updates</button>'
+    },
+    skill: {
+      title: 'Skill Development Programmes',
+      html: '<p>Industry-oriented certifications and workshops run across the year:</p>' +
+        '<ul class="mt-4 space-y-2 text-sm list-disc pl-5"><li>Industry certifications</li><li>Python and Linux workshops</li><li>Microsoft up-skilling modules</li></ul>' +
+        '<button onclick="window.__gistToast(\'Enrolled in the next Python / Linux workshop batch.\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 active:scale-95 transition">Enrol in next batch</button>'
+    },
+    cultural: {
+      title: 'Cultural Activities',
+      html: '<p>GIST celebrates campus life with year-round cultural events:</p>' +
+        '<ul class="mt-4 space-y-2 text-sm list-disc pl-5"><li>Annual Day</li><li>Orientation Day</li><li>Women\'s Day</li><li>National Science Day</li><li>Sankranti Sambaralu</li></ul>' +
+        '<button onclick="window.__gistToast(\'Cultural committee will contact you with event dates.\',\'success\');" class="mt-5 w-full text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 active:scale-95 transition">Join cultural committee</button>'
+    }
+  };
+  document.querySelectorAll('[data-event]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var d = EVENT_DETAILS[btn.dataset.event];
+      if (d) openModal(d.title, d.html);
+    });
+  });
+
+  /* =====================================================
+     PLACEMENTS EXTRAS
+  ===================================================== */
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.dataset.copy;
+      function done() { toast('TPO number copied: ' + text, 'success'); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          fallbackCopy(text); done();
+        });
+      } else { fallbackCopy(text); done(); }
+    });
+  });
+  function fallbackCopy(text) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    } catch (e) { /* ignore */ }
+  }
+
+  var recordBtn = document.querySelector('[data-record]');
+  if (recordBtn) {
+    recordBtn.addEventListener('click', function () {
+      var branches = [['CSE', 92], ['EEE', 88], ['AIML', 84], ['ECE', 80]];
+      openModal('Branch-wise Placement Strength',
+        '<p class="mb-4">CSE and EEE hold the strongest placement records at GIST Nellore. Indicative strength below.</p>' +
+        branches.map(function (b) {
+          return '<div class="mb-3"><div class="flex justify-between text-xs font-bold mb-1"><span class="text-slate-700">' + b[0] + '</span><span class="text-slate-500">' + b[1] + '%</span></div>' +
+            '<div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-blue-600 to-violet-600" style="width:' + b[1] + '%"></div></div></div>';
+        }).join('') +
+        '<div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-800">Highest package: <strong>₹14,00,000 (14 LPA)</strong> · AIML girl students: <strong>₹6,00,000 (6 LPA)</strong> · CSE student: <strong>₹6,00,000 (6 LPA)</strong></div>' +
+        '<a href="tel:+919951587788" class="mt-5 block text-center text-sm font-bold text-white py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 active:scale-95 transition">Call TPO Mr. Y. Dinakar</a>'
+      );
+    });
+  }
+
+  /* =====================================================
+     FACULTY TABS
+  ===================================================== */
+  var FACULTY = {
+    cse: [
+      { name: 'Dr. B. Lakshmana Rao', role: 'Head of Department (HOD)' },
+      { name: 'Dr. R. Rajani', role: 'Professor — CSE' },
+      { name: 'Dr. Veguru Gayatri', role: 'Professor — CSE' },
+      { name: 'Dr. T. Chalamareddy', role: 'Professor — CSE' }
+    ],
+    ece: [
+      { name: 'Dr. Sd. Jeelan Basha', role: 'Professor — ECE' },
+      { name: 'Dr. Sk. Mahaboob Basha', role: 'Professor — ECE' }
+    ],
+    eee: [
+      { name: 'Dr. D. Murali', role: 'Professor — EEE' },
+      { name: 'Dr. T. Ravi Kumar', role: 'Professor — EEE' }
+    ]
+  };
+  var facultyList = document.getElementById('facultyList');
+
+  function renderFaculty(dept) {
+    facultyList.innerHTML = FACULTY[dept].map(function (f) {
+      var initials = f.name.replace('Dr. ', '').split(' ').filter(Boolean).map(function (w) { return w[0]; }).slice(0, 2).join('');
+      return '<div class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 msg-in">' +
+        '<span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white grid place-items-center font-extrabold text-xs">' + initials + '</span>' +
+        '<div class="min-w-0"><p class="font-bold text-slate-800 text-sm leading-tight">' + f.name + '</p>' +
+        '<p class="text-[11px] text-slate-500">' + f.role + '</p></div></div>';
+    }).join('');
+    document.querySelectorAll('.faculty-tab').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.dept === dept);
+    });
+  }
+  document.querySelectorAll('.faculty-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () { renderFaculty(tab.dataset.dept); });
+  });
+  renderFaculty('cse');
+
+  /* =====================================================
+     CHAT ASSISTANT (100% LOCAL RULE-BASED)
+  ===================================================== */
+  var panel = document.getElementById('chatPanel');
+  var messagesEl = document.getElementById('chatMessages');
+  var form = document.getElementById('chatForm');
+  var input = document.getElementById('chatInput');
+  var fab = document.getElementById('chatFab');
+  var fabIconChat = document.getElementById('fabIconChat');
+  var fabIconClose = document.getElementById('fabIconClose');
+  var chatOpen = false;
+
+  function setChat(open) {
+    chatOpen = open;
+    panel.classList.toggle('open', open);
+    fabIconChat.classList.toggle('hidden', open);
+    fabIconClose.classList.toggle('hidden', !open);
+    if (open) {
+      setTimeout(function () { input.focus(); }, 180);
+      scrollChatBottom();
+    }
+  }
+  fab.addEventListener('click', function (e) {
+    e.preventDefault();
+    setChat(!chatOpen);
+  });
+  document.getElementById('closeChat').addEventListener('click', function () { setChat(false); });
+  document.querySelectorAll('[data-open-chat]').forEach(function (b) {
+    b.addEventListener('click', function () { closeMobileMenu(); setChat(true); });
+  });
+
+  document.getElementById('clearChat').addEventListener('click', function () {
+    messagesEl.innerHTML = '';
+    botSay('Chat cleared. Ask me about courses, placements, faculty, hostel, library or events!');
+    toast('Chat history cleared.', 'info');
+  });
+
+  function scrollChatBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  function botAvatar() {
+    return '<span class="w-7 h-7 shrink-0 rounded-full bg-gradient-to-br from-blue-600 to-violet-600 text-white grid place-items-center text-[11px] font-extrabold">G</span>';
+  }
+
+  function addMessage(role, text, opts) {
+    opts = opts || {};
+    var row = document.createElement('div');
+    row.className = 'flex gap-2 items-start msg-in ' + (role === 'user' ? 'justify-end' : 'justify-start');
+
+    var bubbleClass = role === 'user'
+      ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-2xl rounded-tr-sm'
+      : 'bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm shadow-sm';
+
+    var inner = '<div class="' + bubbleClass + ' px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] break-words">' +
+      escapeHtml(text).replace(/\n/g, '<br>');
+
+    if (opts.image) {
+      inner += '<img class="chat-img mt-2.5 w-full rounded-xl border border-slate-100" src="/gist_campus.jpg" alt="GIST Nellore campus">' +
+        '<p class="mt-2 text-[11px] font-semibold text-slate-500">Here\'s an aerial view of our GIST Nellore campus!</p>';
+    }
+    inner += '</div>';
+
+    if (role === 'user') {
+      row.innerHTML = inner + '<span class="w-7 h-7 shrink-0 rounded-full bg-slate-200 text-slate-600 grid place-items-center text-[11px] font-extrabold">You</span>';
+    } else {
+      row.innerHTML = botAvatar() + inner;
+    }
+
+    messagesEl.appendChild(row);
+
+    var img = row.querySelector('.chat-img');
+    if (img) {
+      wireImageFallback(img, CAMPUS_SRC, function (el) { el.style.display = 'none'; });
+    }
+
+    row.querySelectorAll('.bubble-actions').forEach(function () {});
+    scrollChatBottom();
+    return row;
+  }
+
+  function botSay(text, opts) { return addMessage('bot', text, opts); }
+
+  function showTyping() {
+    var row = document.createElement('div');
+    row.id = 'typingBubble';
+    row.className = 'flex gap-2 items-start justify-start msg-in';
+    row.innerHTML = botAvatar() +
+      '<div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm px-4 py-3 flex items-center gap-1.5">' +
+      '<span class="dot"></span><span class="dot"></span><span class="dot"></span>' +
+      '<span class="ml-1.5 text-[11px] font-semibold text-slate-400">typing…</span></div>';
+    messagesEl.appendChild(row);
+    scrollChatBottom();
+  }
+  function hideTyping() {
+    var t = document.getElementById('typingBubble');
+    if (t) t.remove();
+  }
+
+  /* ---------- LOCAL KNOWLEDGE BASE ---------- */
+  var DEFAULT_REPLY = "I don't have that specific detail right now — please check the official GIST website or contact the college administration directly. Ask me about courses, placements, faculty, hostel, library, or events!";
+
+  var KB = [
+    {
+      keys: ['college name', 'full name', 'name of the college', 'what is the college called',
+             'geethanjali institute of science and technology', 'geethanjali college',
+             'full form of gist', 'gist full form', 'college full name'],
+      text: "Our college's full name is Geethanjali Institute of Science and Technology — GIST, Nellore. It was established in 2008 and is AICTE approved, NAAC 'A' grade and NBA accredited.",
+      image: true
+    },
+    {
+      keys: ['principal', 'head of college', 'director'],
+      text: 'Dr. D. Srinivas is the Principal of GIST Nellore. The Vice Principal is Prof. K. Sravan Kumar.'
+    },
+    {
+      keys: ['course', 'branch', 'program', 'specialization', 'btech', 'diploma', 'mtech', 'stream'],
+      text: 'GIST offers B.Tech (4 years) in Data Science, Cyber Security, Mechanical, Civil, AIML, CSE and more (8 specializations), Diploma (3 years) in 5 disciplines, and M.Tech (2 years) in CSE.'
+    },
+    {
+      keys: ['admission', 'eligibility', 'eamcet', 'polycet', 'apply', 'join'],
+      text: "Admission needs a bachelor's degree with min 50% marks and a valid AP EAMCET or AP POLYCET scorecard."
+    },
+    {
+      keys: ['package', 'placement', 'salary', 'job', 'career', 'lpa', 'recruit', 'company'],
+      text: 'The highest package this year is ₹14,00,000 (14 LPA). AIML branch girl students received ₹6,00,000 (6 LPA) offers, and a CSE student also got ₹6,00,000 (6 LPA). CSE and EEE have the strongest placement records. Contact TPO Mr. Y. Dinakar at +91 9951587788.'
+    },
+    {
+      keys: ['library', 'book', 'journal'],
+      text: 'Our library has 2,700+ titles, nearly 28,000 volumes, digital access via DELNET, INFOTRAC, NPTEL, plus separate departmental libraries.'
+    },
+    {
+      keys: ['hostel', 'accommodation', 'stay', 'room'],
+      text: "GIST has separate boys' and girls' hostels with wifi, ATMs, gyms, fitness centers, and study rooms."
+    },
+    {
+      keys: ['gistech', 'srujana', 'fest', 'symposium', 'technical event'],
+      text: 'GISTECH FEST & SRUJANA are our annual national-level technical symposiums with paper presentations, project expos, coding contests, and robotics exhibitions.'
+    },
+    {
+      keys: ['ganesh', 'eco', 'idol', 'environment', 'sustainable'],
+      text: 'Students recently held a Ganesh Eco-Friendly Idol Making activity, creating idols from sustainable, non-toxic materials for environmental awareness.'
+    },
+    {
+      keys: ['hackathon', 'coding contest', 'sih'],
+      text: 'GIST students actively participate in the Smart India Hackathon and CSE department developer workshops. Right now a mini hackathon is happening live on campus in the CSE Lab Block!'
+    },
+    {
+      keys: ['faculty', 'hod', 'professor', 'teacher', 'staff'],
+      text: 'CSE HOD is Dr. B. Lakshmana Rao, with faculty Dr. R. Rajani, Dr. Veguru Gayatri, Dr. T. Chalamareddy. ECE: Dr. Sd. Jeelan Basha, Dr. Sk. Mahaboob Basha. EEE: Dr. D. Murali, Dr. T. Ravi Kumar.'
+    },
+    {
+      keys: ['location', 'address', 'where is', 'situated'],
+      text: 'GIST is located at 3rd Mile, Nellore-Bombay Highway, Gangavaram (V), Kovur (M), S.P.S.R district, Andhra Pradesh, 524137.'
+    },
+    {
+      keys: ['about', 'established', 'accredit', 'naac', 'nba', 'history', 'when was'],
+      text: "GIST Nellore was established in 2008, AICTE approved, NAAC 'A' grade and NBA accredited, ISO 9001:2008 certified, with Autonomous status."
+    },
+    {
+      keys: ['sport', 'game', 'cricket', 'football', 'playground'],
+      text: 'GIST has facilities for cricket, hockey, basketball, volleyball, badminton, football, and kabaddi.'
+    },
+    {
+      keys: ['image', 'photo', 'picture', 'show me', 'look like'],
+      text: "Here's an aerial view of our GIST Nellore campus!",
+      image: true
+    }
+  ];
+
+  function getReply(raw) {
+    var msg = String(raw).toLowerCase().trim();
+    for (var i = 0; i < KB.length; i++) {
+      var cat = KB[i];
+      for (var k = 0; k < cat.keys.length; k++) {
+        if (msg.indexOf(cat.keys[k]) !== -1) {
+          return { text: cat.text, image: !!cat.image };
+        }
+      }
+    }
+    if (/^(hi|hello|hey|hai|helo|namaste|good morning|good afternoon|good evening)\b/.test(msg)) {
+      return {
+        text: "Hello! 👋 I'm the GIST Smart Campus Assistant. Ask me about courses, admissions, placements, faculty, hostel, library, events, sports or the campus itself."
+      };
+    }
+    return { text: DEFAULT_REPLY };
+  }
+
+  function sendMessage(text) {
+    var msg = (typeof text === 'string' ? text : input.value).trim();
+    if (!msg) {
+      input.focus();
+      return;
+    }
+    addMessage('user', msg);
+    input.value = '';
+    showTyping();
+
+    var delay = 600 + Math.floor(Math.random() * 300); // 600–900 ms
+    setTimeout(function () {
+      hideTyping();
+      var reply = getReply(msg);
+      botSay(reply.text, { image: reply.image });
+    }, delay);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    sendMessage();
+  });
+
+  document.querySelectorAll('.chip-mini').forEach(function (chip) {
+    chip.addEventListener('click', function () { sendMessage(chip.dataset.q); });
+  });
+
+  var QUESTION_PRESETS = {
+    courses: 'What courses are offered?',
+    placement: 'What is the highest placement package?',
+    principal: 'Who is the principal of the college?',
+    collegename: 'What is the full name of the college?',
+    hostel: 'Tell me about the hostel facilities'
+  };
+  document.querySelectorAll('[data-open-chat-question]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var q = QUESTION_PRESETS[btn.dataset.openChatQuestion];
+      setChat(true);
+      if (q) setTimeout(function () { sendMessage(q); }, 250);
+    });
+  });
+
+  /* ---------- global helpers used inside modal markup ---------- */
+  window.__gistToast = function (m, t) { toast(m, t); };
+  window.__gistScroll = function (id) { closeModal(); scrollToId(id); };
+  window.__gistCloseModal = closeModal;
+  window.__gistAsk = function (q) {
+    closeModal();
+    setChat(true);
+    setTimeout(function () { sendMessage(q); }, 250);
+  };
+
+  /* ---------- welcome message ---------- */
+  botSay("Hi! 👋 I'm the GIST Smart Campus Assistant — running fully offline with rule-based logic, so no external API calls are made. Ask me about courses, admissions, placements, faculty, hostel, library, events, sports or the campus photo!");
+
+  /* =====================================================
+     INIT
+  ===================================================== */
+  document.getElementById('year').textContent = new Date().getFullYear();
+  updateActiveNav();
+  window.addEventListener('load', function () {
+    if (menuOpen) mobileMenu.style.maxHeight = mobileMenu.scrollHeight + 'px';
+  });
+})();
+</script>
+</body>
+</html>
